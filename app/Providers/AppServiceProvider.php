@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(Request $request): void
     {
-        // Percayai proxy Railway agar skema HTTPS terdeteksi
+        // Percayai proxy Railway dan paksa HTTPS secara mutlak
         $request->setTrustedProxies(
             ['*'],
             Request::HEADER_X_FORWARDED_FOR |
