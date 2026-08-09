@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,13 +19,17 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+    public function boot(Request $request): void
     {
-        // Paksa HTTPS dan kunci Root URL agar cocok dengan domain Railway
-        URL::forceScheme('https');
+        // Percayai proxy Railway agar skema HTTPS terdeteksi
+        $request->setTrustedProxies(
+            ['*'],
+            Request::HEADER_X_FORWARDED_FOR |
+            Request::HEADER_X_FORWARDED_HOST |
+            Request::HEADER_X_FORWARDED_PORT |
+            Request::HEADER_X_FORWARDED_PROTO
+        );
 
-        if (config('app.url')) {
-            URL::forceRootUrl(config('app.url'));
-        }
+        URL::forceScheme('https');
     }
 }
