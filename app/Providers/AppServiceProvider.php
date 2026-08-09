@@ -20,7 +20,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Paksa HTTPS secara langsung untuk semua akses online
+        // Paksa HTTPS dan kunci Root URL agar cocok dengan domain Railway
         URL::forceScheme('https');
+
+        if (config('app.url')) {
+            URL::forceRootUrl(config('app.url'));
+        }
     }
 }
