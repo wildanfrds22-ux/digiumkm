@@ -6,9 +6,12 @@
 <div class="max-w-5xl mx-auto space-y-8">
 
     <!-- Header -->
-    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-lg">
-        <h1 class="text-3xl font-extrabold mb-2">Rekomendasi Digitalisasi UMKM</h1>
-        <p class="text-blue-100 text-lg">Strategi personalisasi AI berdasarkan profil usaha Anda.</p>
+    <div class="bg-gradient-to-r from-brand-700 to-brand-600 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(currentColor 1.5px, transparent 1.5px); background-size: 18px 18px; color: white;"></div>
+        <div class="relative">
+            <h1 class="text-3xl font-extrabold mb-2">Rekomendasi Digitalisasi UMKM</h1>
+            <p class="text-brand-100 text-lg">Strategi personalisasi AI berdasarkan profil usaha Anda.</p>
+        </div>
     </div>
 
     <!-- Strategi Utama -->
@@ -33,11 +36,11 @@
                     <div class="flex justify-between items-start mb-4">
                         <div>
                             <h3 class="text-lg font-bold text-gray-900">{{ $item['platform'] }}</h3>
-                            <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mt-1 font-medium">
+                            <span class="inline-block bg-brand-100 text-brand-800 text-xs px-2 py-1 rounded mt-1 font-medium">
                                 {{ $item['kategori'] }}
                             </span>
                         </div>
-                        <div class="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full text-sm">
+                        <div class="bg-gold-50 text-gold-600 font-bold px-3 py-1 rounded-full text-sm">
                             Skor: {{ $item['match_score'] }}/100
                         </div>
                     </div>
@@ -46,7 +49,7 @@
                     </p>
                     <div class="pt-4 border-t border-gray-100">
                         <p class="text-sm font-semibold text-gray-800">
-                            Estimasi Biaya: <span class="text-blue-600">{{ $item['estimasi_biaya'] }}</span>
+                            Estimasi Biaya: <span class="text-brand-600">{{ $item['estimasi_biaya'] }}</span>
                         </p>
                     </div>
                 </div>
@@ -66,7 +69,7 @@
                 @foreach($rekomendasi['roadmap'] as $langkah)
                 <div class="flex gap-4">
                     <div class="flex flex-col items-center">
-                        <div class="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold shadow-sm">
+                        <div class="bg-brand-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold shadow-sm">
                             H:{{ explode('-', $langkah['hari'])[0] ?? $langkah['hari'] }}
                         </div>
                         <div class="h-full w-px bg-gray-200 my-2"></div>
@@ -85,13 +88,13 @@
 
     <!-- Tombol Navigasi & Cetak PDF -->
     <div class="flex flex-wrap justify-center gap-4 pt-4 pb-8 print:hidden">
-        <a href="/profil-umkm" class="bg-white text-gray-600 border border-gray-300 px-6 py-2 rounded-lg font-medium hover:bg-gray-50 transition shadow-sm">
+        <a href="/profil-umkm" class="bg-white text-gray-600 border border-gray-300 px-6 py-2.5 rounded-full font-medium hover:bg-gray-50 transition shadow-sm">
             Analisis Baru
         </a>
-        <a href="{{ route('riwayat.index') }}" class="bg-gray-800 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-900 transition shadow-sm">
+        <a href="{{ route('riwayat.index') }}" class="bg-brand-700 text-white px-6 py-2.5 rounded-full font-medium hover:bg-brand-800 transition shadow-sm">
             Lihat Riwayat
         </a>
-        <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow-md">
+        <button onclick="window.print()" class="bg-brand-600 text-white px-6 py-2.5 rounded-full font-bold hover:bg-brand-700 transition shadow-md">
             🖨️ Cetak / Ekspor PDF
         </button>
     </div>

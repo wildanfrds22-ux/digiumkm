@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use App\Models\Recommendation;
 use Illuminate\Support\Facades\Auth;
 
@@ -11,11 +12,25 @@ class RecommendationController extends Controller
 {
     public function generate(Request $request)
     {
-        $profil = $request->all();
+        // Validasi input — memastikan seluruh data profil UMKM terisi
+        // sebelum dikirim ke AI. Jika gagal, Laravel otomatis redirect
+        // kembali ke form dengan pesan error dan mengembalikan input lama.
+        $profil = $request->validate([
+            'business_type' => 'required|string|max:100',
+            'business_scale' => 'required|string|max:50',
+            'location' => 'required|string|max:100',
+            'target_market' => 'required|string|max:50',
+            'monthly_budget' => 'required|string|max:50',
+            'digitalization_goal' => 'required|string|max:100',
+        ], [
+            'required' => 'Kolom ini wajib diisi.',
+        ]);
+
         $apiKey = env('GEMINI_API_KEY');
 
         if (!$apiKey) {
-            return back()->with('error', 'API Key belum diatur!');
+            Log::error('DigiUMKM: GEMINI_API_KEY belum diatur di environment.');
+            return back()->withInput()->with('error', 'Sistem AI belum dikonfigurasi (API Key belum diatur). Silakan hubungi admin.');
         }
 
         $prompt = "Anda adalah konsultan digitalisasi UMKM Indonesia.
@@ -25,12 +40,12 @@ class RecommendationController extends Controller
         - Pembayaran Digital: GoPay, OVO, DANA, QRIS
 
         Berikut adalah data UMKM klien:
-        - Jenis Usaha: " . ($profil['business_type'] ?? '-') . "
-        - Skala Usaha: " . ($profil['business_scale'] ?? '-') . "
-        - Lokasi: " . ($profil['location'] ?? '-') . "
-        - Target Pasar: " . ($profil['target_market'] ?? '-') . "
-        - Anggaran per bulan: " . ($profil['monthly_budget'] ?? '-') . "
-        - Tujuan Digitalisasi: " . ($profil['digitalization_goal'] ?? '-') . "
+        - Jenis Usaha: " . $profil['business_type'] . "
+        - Skala Usaha: " . $profil['business_scale'] . "
+        - Lokasi: " . $profil['location'] . "
+        - Target Pasar: " . $profil['target_market'] . "
+        - Anggaran per bulan: " . $profil['monthly_budget'] . "
+        - Tujuan Digitalisasi: " . $profil['digitalization_goal'] . "
 
         Berikan estimasi biaya yang masuk akal dan TIDAK melebihi anggaran per bulan.
 
@@ -58,7 +73,7 @@ class RecommendationController extends Controller
         $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=' . $apiKey;
 
         try {
-            $response = Http::withHeaders([
+            $response = Http::timeout(30)->withHeaders([
                 'Content-Type' => 'application/json',
             ])->post($url, [
                 'contents' => [['parts' => [['text' => $prompt]]]],
@@ -68,33 +83,52 @@ class RecommendationController extends Controller
                 ]
             ]);
 
-            if ($response->successful()) {
-                $hasil = $response->json();
-                $teksAI = $hasil['candidates'][0]['content']['parts'][0]['text'];
-                $dataRekomendasi = json_decode($teksAI, true);
-
-                // Simpan ke Database (Riwayat)
-                Recommendation::create([
-                    'user_id' => Auth::id(),
-                    'business_type' => $profil['business_type'] ?? '-',
-                    'business_scale' => $profil['business_scale'] ?? '-',
-                    'location' => $profil['location'] ?? '-',
-                    'target_market' => $profil['target_market'] ?? '-',
-                    'monthly_budget' => $profil['monthly_budget'] ?? '-',
-                    'digitalization_goal' => $profil['digitalization_goal'] ?? '-',
-                    'recommendation_result' => $dataRekomendasi,
+            if (!$response->successful()) {
+                Log::error('DigiUMKM: Gemini API request gagal.', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
                 ]);
-
-                return view('hasil-rekomendasi', [
-                    'profil' => $profil,
-                    'rekomendasi' => $dataRekomendasi
-                ]);
-            } else {
-                return back()->with('error', 'Gagal menghubungi server AI.');
+                return back()->withInput()->with('error', 'Gagal menghubungi server AI (status ' . $response->status() . '). Silakan coba lagi dalam beberapa saat.');
             }
 
+            $hasil = $response->json();
+            $teksAI = $hasil['candidates'][0]['content']['parts'][0]['text'] ?? null;
+
+            if (!$teksAI) {
+                Log::error('DigiUMKM: Respons Gemini tidak memiliki teks konten.', ['response' => $hasil]);
+                return back()->withInput()->with('error', 'AI tidak memberikan respons yang valid. Kemungkinan permintaan diblokir filter keamanan AI. Silakan coba ubah data profil dan kirim ulang.');
+            }
+
+            $dataRekomendasi = json_decode($teksAI, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || !isset($dataRekomendasi['rekomendasi_utama'])) {
+                Log::error('DigiUMKM: Gagal parsing JSON dari respons Gemini.', ['raw' => $teksAI]);
+                return back()->withInput()->with('error', 'Format hasil dari AI tidak sesuai. Silakan coba kirim ulang analisis Anda.');
+            }
+
+            // Simpan ke Database (Riwayat)
+            Recommendation::create([
+                'user_id' => Auth::id(),
+                'business_type' => $profil['business_type'],
+                'business_scale' => $profil['business_scale'],
+                'location' => $profil['location'],
+                'target_market' => $profil['target_market'],
+                'monthly_budget' => $profil['monthly_budget'],
+                'digitalization_goal' => $profil['digitalization_goal'],
+                'recommendation_result' => $dataRekomendasi,
+            ]);
+
+            return view('hasil-rekomendasi', [
+                'profil' => $profil,
+                'rekomendasi' => $dataRekomendasi
+            ]);
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('DigiUMKM: Koneksi ke Gemini API timeout/gagal.', ['message' => $e->getMessage()]);
+            return back()->withInput()->with('error', 'Koneksi ke server AI gagal atau terlalu lama. Periksa koneksi internet Anda dan coba lagi.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
+            Log::error('DigiUMKM: Kesalahan sistem tak terduga.', ['message' => $e->getMessage()]);
+            return back()->withInput()->with('error', 'Terjadi kesalahan sistem. Silakan coba lagi. Jika masalah berlanjut, hubungi admin.');
         }
     }
 

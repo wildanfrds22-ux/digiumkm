@@ -1,1 +1,24 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+@theme {
+    --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+
+    --color-brand-50: #EEF4F0;
+    --color-brand-100: #DCE9E1;
+    --color-brand-200: #B9D3C3;
+    --color-brand-500: #3F6A54;
+    --color-brand-600: #2E5744;
+    --color-brand-700: #234339;
+    --color-brand-800: #1A332B;
+
+    --color-gold-50: #FBF3E2;
+    --color-gold-100: #F5E4C0;
+    --color-gold-500: #C79A4B;
+    --color-gold-600: #B08236;
+
+    --color-cream: #FBF7EF;
+    --color-cream-50: #FDFBF7;
+}
+
+[x-cloak] { display: none !important; }

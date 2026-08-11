@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(Request $request): void
     {
-        // Percayai proxy Railway dan paksa HTTPS secara mutlak
+        // Percayai proxy Railway
         $request->setTrustedProxies(
             ['*'],
             Request::HEADER_X_FORWARDED_FOR |
@@ -30,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
             Request::HEADER_X_FORWARDED_PROTO
         );
 
-        URL::forceScheme('https');
+        // HANYA paksa HTTPS jika aplikasi berjalan di server production (Railway)
+        // Di lokal, ini akan diabaikan sehingga server lokal tetap aman pakai HTTP biasa.
+        if (config('app.env') === 'production') {
+            URL::forceScheme('https');
+        }
     }
 }
